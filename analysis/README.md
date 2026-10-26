@@ -175,7 +175,7 @@ The analysis output consists of a map with:
   - `:auto-resolved`: if the keyword `:ns` is auto resolved, example: `::kw`
   - `:namespace-from-prefix`: if the keyword `:ns` is from the namespaced map, example: `::b{:kw 1}`
   - `:keys-destructuring`: if the keyword is within a `:keys` vector.
-  - `:reg`: can be added by `:hooks` using `clj-kondo.hook-api/reg-keyword!` to indicate a registered definition location for the keyword.
+  - `:reg`: can be added by `:hooks` using `clj-kondo.hook-api/reg-keyword!` to indicate a registered definition location for the keyword. clj-kondo adds it itself for `clojure.spec.alpha/def`, re-frame's `reg-*` functions and the methods of integrant's lifecycle multimethods (`(defmethod ig/init-key ::db ...)` has `:reg integrant.core/init-key`).
     It should be the fully qualified call that registered it.
 
 - `:protocol-impls`, a list of maps with:

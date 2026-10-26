@@ -133,6 +133,23 @@
          {:name "f" :reg re-frame.core/reg-fx}
          {:name "g" :reg re-frame.core/reg-cofx}]
        (:keywords a))))
+  (testing "a method of an integrant lifecycle multimethod adds :reg to its keyword dispatch value"
+    (let [a (analyze "(require '[integrant.core :as ig])
+                      (defmethod ig/init-key ::db [_ opts] opts)
+                      (defmethod ig/halt-key! ::db [_ _] nil)
+                      (defmethod ig/expand-key :app.module/web [_ _] {})
+                      (defmethod ig/init-key :default [_ v] v)
+                      (defmulti other identity)
+                      (defmethod other ::not-integrant [_] nil)"
+                     {:config {:analysis {:keywords true}}})]
+      (assert-submaps
+       '[{:name "as"}
+         {:name "db" :ns user :reg integrant.core/init-key}
+         {:name "db" :ns user :reg integrant.core/halt-key!}
+         {:name "web" :ns app.module :reg integrant.core/expand-key}
+         {:name "default" :reg :submap/missing}
+         {:name "not-integrant" :ns user :reg :submap/missing}]
+       (:keywords a))))
   (testing ":lint-as re-frame.core function will add :reg with the source full qualified ns"
     (let [a (analyze "(user/mydef ::kw (constantly {}))"
                      {:config {:analysis {:keywords true}

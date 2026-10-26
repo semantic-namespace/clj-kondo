@@ -2731,6 +2731,23 @@
                                              :fixed-arities #{1})))
       (analyze-protocol-impls ctx defined-by defined-by->lint-as ns-name (nnext children)))))
 
+(def ^:private integrant-methods
+  '#{init-key halt-key! resume-key suspend-key! resolve-key expand-key assert-key prep-key pre-init-spec})
+
+(defn- reg-dispatch-keyword
+  "A qualified keyword dispatch value of a method of one of integrant's
+  lifecycle multimethods is registered by it, as re-frame's reg-* and spec's
+  s/def register theirs. An unqualified one (:default) is no component."
+  [ctx method-name-node dispatch-val-node]
+  (let [sym (:value method-name-node)
+        k (:k dispatch-val-node)]
+    (if (and k (or (:namespaced? dispatch-val-node) (qualified-keyword? k)) (symbol? sym))
+      (let [{rns :ns rname :name} (resolve-name ctx true (-> ctx :ns :name) sym nil)]
+        (if (and (= 'integrant.core rns) (contains? integrant-methods rname))
+          (assoc dispatch-val-node :reg (symbol (str rns) (str rname)))
+          dispatch-val-node))
+      dispatch-val-node)))
+
 (defn analyze-defmethod [ctx expr]
   (when-let [children (next (:children expr))]
     (let [[method-name-node dispatch-val-node & fn-tail] children
@@ -2739,7 +2756,8 @@
                                     :defmethod true,
                                     :dispatch-val-str (pr-str (sexpr dispatch-val-node)))
                              method-name-node)
-          _ (analyze-expression** ctx-without-idx dispatch-val-node)]
+          _ (analyze-expression** ctx-without-idx
+                                  (reg-dispatch-keyword ctx-without-idx method-name-node dispatch-val-node))]
       (analyze-fn ctx-without-idx (with-meta {:children (cons nil fn-tail)} (meta expr))))))
 
 (defn analyze-areduce [ctx expr]
